@@ -21,4 +21,4 @@ Further planned features:
 
 # It is not recommended to use this version of the block chain in a productive system, important security checks will be done with the completion of version 0.9
 
-# My Bitcoin address for support: bc1q3ftdzhelky9vjzy3qsjm2r5558yk49l53tz6pw0jv7q7va9k0edsl3wgxn
+My Bitcoin address for support: bc1q3ftdzhelky9vjzy3qsjm2r5558yk49l53tz6pw0jv7q7va9k0edsl3wgxn

@@ -51,4 +51,4 @@ OCTARIUM_COIN = Coin(
     TxnFeeBurningPerc=250)       
 
 # Die Apollon Chain wird erstellt
-blch = Blockchain.createNewChain('/home/gabriel/Dokumente/Database/', NETWORK_NAME, CHAIN_SEED, *[ TARIUM_COIN, OCTARIUM_COIN ])
+blch = Blockchain.createNewChain('%PATH%', NETWORK_NAME, CHAIN_SEED, *[ TARIUM_COIN, OCTARIUM_COIN ])

@@ -1,3 +1,6 @@
+
+""" Blöcke """
+
 ## Wird benötigt um einen neen Block zu erstellen ##
 class BlockConstruct:
     def __init__(self, PreviousBlockHash, BlockHeight ,MinerAddress ,TimestampObj, Diff, *Transactions):
@@ -70,7 +73,15 @@ class MinedBlock:
         if AsBytes == True: return binascii.hexlify(b)
         else: from apollon.utils import encodeBase58; return encodeBase58(binascii.hexlify(b))
 
-    def getBlockSize(self): return 0
+    def getBlockSize(self):
+        tota = 0
+        tota += len(str(self.height))
+        tota += len(self.previous_hash)
+        tota += len(str(self.timestamp))
+        tota += len(str(self.diff))
+        tota += len(str(self.nonce))
+        for i in self.transactions: tota += i.getByteSize()
+        return tota
 
     def isGenesisBlock(self): return False
 
@@ -119,6 +130,41 @@ class MinedBlock:
         for i in self.transactions: transac.append(i.toJSON())
         rd['transactions'] = transac
         return rd
+
+
+
+"""Block Storage object"""
+
+## Mined Storage Block Object ##
+class ST_MinedBlock(MinedBlock):
+
+    # Erstellte einen Geminten Block aus dem Storage
+    def __init__(self):
+        super().__init__()
+        self.confirms = 0
+        self.miner_adr = None
+    
+    # Gibt die Anzahl der Bestätigungen aus
+    def getConfirmations(self): return self.confirms
+    
+    # Gibt an ob der Block bestätigt wurde
+    def isConfirmed(self): return self.confirms != 0
+    
+    # Gibt die Adresse des Miners aus
+    def getMinerAddress(self): return self.miner_adr
+
+    @classmethod
+    def fromConstructWithNonce(cls, ConstructedBlock, Nonce, Confirms, MinerAddress):
+        new_block = cls()
+        for i in ConstructedBlock.transactions: new_block.transactions.append(i)
+        new_block.height = ConstructedBlock.height
+        new_block.timestamp = ConstructedBlock.timestamp
+        new_block.nonce = Nonce
+        new_block.confirms = Confirms
+        new_block.miner_adr = MinerAddress
+        new_block.diff = ConstructedBlock.diff
+        new_block.previous_hash = ConstructedBlock.prev_block_hash_bytes
+        return new_block
 
 
 

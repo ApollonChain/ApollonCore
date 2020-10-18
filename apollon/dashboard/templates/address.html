@@ -1,0 +1,144 @@
+{% extends 'style.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            {% if address_metadata.getAddress().getType() == 'BURN' %}
+            <p class="h5 card-header bg-danger text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-receipt-cutoff" fill="currentColor">
+                    <path fill-rule="evenodd" d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v13h-1V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51L2 2.118V15H1V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM0 15.5a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
+                    <path fill-rule="evenodd" d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-8a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                Burn address details
+            </p>
+            {% else %}
+            <p class="h5 card-header bg-primary text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-receipt-cutoff" fill="currentColor">
+                    <path fill-rule="evenodd" d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v13h-1V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0l-.509-.51L2 2.118V15H1V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27zM0 15.5a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
+                    <path fill-rule="evenodd" d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5zm8-8a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5zm0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                Address details
+            </p>
+            {% endif %}
+            <div class="card-body bg-light">
+                <dl class="row">
+                    <dt class="col-sm-3">Address: </dt>
+                    <dd class="col-sm-9"><a href="{{ url_for('_adress',addressid=address_metadata.getAddress()) }}">{{ address_metadata.getAddress() }}</a></dd>
+                  
+                    <dt class="col-sm-3">Address hash: </dt>
+                    <dd class="col-sm-9">{{ address_metadata.getAddress().getHash() }}</dd>
+                  
+                    <dt class="col-sm-3">Total transactions: </dt>
+                    <dd class="col-sm-9">{{ address_metadata.getTotalTransactions() }}</dd>
+
+                    <dt class="col-sm-3">Total recived: </dt>
+                    <dd class="col-sm-9">
+                        <dl class="row">
+                            {% for tota in address_metadata.getValues() %}
+                            <dt class="col-sm-3">{{ tota.getCoin().getName() }}:</dt>
+                            <dd class="col-sm-9"> {{ tota.getTotalIn(True) }} {{ tota.getCoin().getSymbol() }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </dd>
+                  
+                    <dt class="col-sm-3">Total send: </dt>
+                    <dd class="col-sm-9">
+                        <dl class="row">
+                            {% for tota in address_metadata.getValues() %}
+                            <dt class="col-sm-3">{{ tota.getCoin().getName() }}:</dt>
+                            <dd class="col-sm-9"> {{ tota.getTotalOut(True) }} {{ tota.getCoin().getSymbol() }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </dd>
+
+                    <dt class="col-sm-3">Confirmed: </dt>
+                    <dd class="col-sm-9">
+                        <dl class="row">
+                            {% for tota in address_metadata.getValues() %}
+                            <dt class="col-sm-3">{{ tota.getCoin().getName() }}:</dt>
+                            <dd class="col-sm-9"> {{ tota.getTotalConfirmed(True) }} {{ tota.getCoin().getSymbol() }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </dd>
+
+                    <dt class="col-sm-3">Unconfirmed: </dt>
+                    <dd class="col-sm-9">
+                        <dl class="row">
+                            {% for tota in address_metadata.getValues() %}
+                            <dt class="col-sm-3">{{ tota.getCoin().getName() }}:</dt>
+                            <dd class="col-sm-9"> {{ tota.getTotalUnconfirmed(True) }} {{ tota.getCoin().getSymbol() }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </dd>
+
+                    <dt class="col-sm-3">Amount: </dt>
+                    <dd class="col-sm-9">
+                        <dl class="row">
+                            {% for tota in address_metadata.getValues() %}
+                            <dt class="col-sm-3">{{ tota.getCoin().getName() }}:</dt>
+                            <dd class="col-sm-9"> {{ tota.getAmount(True) }} {{ tota.getCoin().getSymbol() }}</dd>
+                            {% endfor %}
+                        </dl>
+                    </dd>
+
+                </dl>
+            </div>
+        </div>          
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <p class="h5 card-header bg-primary text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-list-check" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3.854 2.146a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 3.293l1.146-1.147a.5.5 0 0 1 .708 0zm0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 7.293l1.146-1.147a.5.5 0 0 1 .708 0zm0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
+                </svg>
+                Transactions's:
+            </p>
+            <div class="card-body bg-light">
+                <div class="btn-group" role="group">
+                  {% if HasPrevPage == True %}
+                  <a href="{{ url_for('_blocks', page=1) }}" class="btn btn-secondary btn-sm">&laquo;</a>
+                  <a href="{{ url_for('_blocks', page=PrevPage) }}" class="btn btn-secondary btn-sm">Previous</a>
+                  {% else %}
+                  <a class="btn btn-secondary btn-sm disabled">&laquo;</a>
+                  <a class="btn btn-secondary btn-sm float-left disabled">Previous</a>
+                  {% endif %}
+                </div>
+                <div class="btn-group float-right" role="group">
+                  {% if HasNextPage == True %}
+                  <a href="{{ url_for('_blocks', page=NextPage) }}" class="btn btn-primary btn-sm">Next</a>
+                  <a href="{{ url_for('_blocks', page=TotalPages) }}" class="btn btn-primary btn-sm">&raquo;</a>
+                  {% else %}
+                  <a class="btn btn-primary btn-sm float-right disabled">Next</a>
+                  <a class="btn btn-primary btn-sm disabled">&raquo;</a>
+                  {% endif %}
+                </div>
+            </div>
+            <div class="card-body bg-light">
+
+            </div>
+            <div class="card-body bg-light">
+                <div class="btn-group" role="group">
+                  {% if HasPrevPage == True %}
+                  <a href="{{ url_for('_blocks', page=1) }}" class="btn btn-secondary btn-sm">&laquo;</a>
+                  <a href="{{ url_for('_blocks', page=PrevPage) }}" class="btn btn-secondary btn-sm">Previous</a>
+                  {% else %}
+                  <a class="btn btn-secondary btn-sm disabled">&laquo;</a>
+                  <a class="btn btn-secondary btn-sm float-left disabled">Previous</a>
+                  {% endif %}
+                </div>
+                <div class="btn-group float-right" role="group">
+                  {% if HasNextPage == True %}
+                  <a href="{{ url_for('_blocks', page=NextPage) }}" class="btn btn-primary btn-sm">Next</a>
+                  <a href="{{ url_for('_blocks', page=TotalPages) }}" class="btn btn-primary btn-sm">&raquo;</a>
+                  {% else %}
+                  <a class="btn btn-primary btn-sm float-right disabled">Next</a>
+                  <a class="btn btn-primary btn-sm disabled">&raquo;</a>
+                  {% endif %}
+                </div>
+            </div>
+        </div>          
+    </div>
+</div>
+{% endblock %}

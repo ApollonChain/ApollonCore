@@ -6,44 +6,22 @@ import hashlib
 import base58
 import ecdsa
 
-"""
-Version: 0.1.0
-Author: gyco
-"""
 
+
+
+# Es wird geprüft ob die Blockchain geladen wurde
 if gv_.ChainRoot is None: raise Exception('Not RootConfig, loaded')
 
 
-# Erstellt die Gehaste Adresse aus einem Öffentlichen Schlüssel
-def calcLagacyAddressFromPublicKey(public_key):
-    # Die PublicKey wird gehasht
-    public_key_long_hash_sha3_512 = hashlib.sha3_512(public_key).digest()
-    public_key_long_hash_sha2_512 = hashlib.sha512(public_key).digest()
-    adress_short_hash_sha2_256 = hashlib.sha3_256(public_key_long_hash_sha2_512 + public_key_long_hash_sha3_512).digest()
-    hli = hashlib.new('ripemd160'); hli.update(public_key_long_hash_sha2_512 + public_key_long_hash_sha3_512)
-    address_short_ripemd160 = hli.digest()
 
-    # Die Adresse wird aus den zwei Short Hashes erstellt
-    new_address_hash_bytes = address_short_ripemd160[3:16] + adress_short_hash_sha2_256[13:32]
 
-    # Die Daten werden zurückegeben
-    return new_address_hash_bytes
-
-## Adress Werkzeuge ##
-class AddressUtils(object):
-    @staticmethod
-    def isValidatePhantomAddress(AddressStr): return False
-    
-    @staticmethod
-    def getAddressType(AddressStr): return ''
-
-    @staticmethod
-    def importAddressFromString(AddressStr): return ''
+""" Basic Types """
 
 ## Adress Typen ##
 class AddressTypes(enu):
     Lagacy = 'LAGACY'
     Phantom = 'PHANTOM'
+    ChainOwnAddress = 'CHAIN_ADDRESS'
 
 ## Adresse Objekt ##
 class Address(object):
@@ -59,10 +37,9 @@ class Address(object):
     def getHash(self, asBytes=True): raise Exception('Empty Object')
 
 
-## Blockchain Adresse ## TODO
-class BlockchainAddress(Address):
-    def __init__(self): return
 
+
+""" Lagacy Addresses """
 
 ## Lagacy Siganture ##
 class LagacySignature(object):
@@ -181,10 +158,28 @@ class LagacyAddress(Address):
         super().__init__(AddressTypes.Lagacy)
         self.address_hash = None; self.checksum = None; self.network = None
 
+    # Diese Funktion überprüft zwei Lagacy Addressen
     def __eq__(self, other):
         if isinstance(other, LagacyAddress) == True: return self.getHash(True) == other.getHash(True)
+        elif isinstance(other, BlockchainAddress) == True: return self.getHash(True) == other.getHash(True) 
         elif isinstance(other, str) == True: return self.toStr() == other
         else: return False
+
+    @staticmethod
+    # Erstellt einen AdressHash aus einem Öffentlichen Schlüssel
+    def _calcAddressHash(PublicKey):
+        # Die PublicKey wird gehasht
+        public_key_long_hash_sha3_512 = hashlib.sha3_512(PublicKey).digest()
+        public_key_long_hash_sha2_512 = hashlib.sha512(PublicKey).digest()
+        adress_short_hash_sha2_256 = hashlib.sha3_256(public_key_long_hash_sha2_512 + public_key_long_hash_sha3_512).digest()
+        hli = hashlib.new('ripemd160'); hli.update(public_key_long_hash_sha2_512 + public_key_long_hash_sha3_512)
+        address_short_ripemd160 = hli.digest()
+
+        # Die Adresse wird aus den zwei Short Hashes erstellt
+        new_address_hash_bytes = address_short_ripemd160[3:16] + adress_short_hash_sha2_256[13:32]
+
+        # Die Daten werden zurückegeben
+        return new_address_hash_bytes
 
     # Gibt die Adresse als String aus
     def toStr(self, AsBytes=False):
@@ -224,7 +219,7 @@ class LagacyAddress(Address):
         # Es wird vesucht den passenden PublicKey zu finden
         resolv_pub_key = None
         for i in recoverd_key:
-            try: address_key_hash = calcLagacyAddressFromPublicKey(i.to_string())
+            try: address_key_hash = LagacyAddress._calcAddressHash(i.to_string())
             except: return False
             if address_key_hash == self.address_hash: resolv_pub_key = i; break
         if resolv_pub_key == None: return False # Es wurde kein passender Schlüssel gefunden
@@ -248,7 +243,7 @@ class LagacyAddress(Address):
     @classmethod
     def fromPublicKey(cls, PublicKey, NetworkCMHex=gv_.ChainRoot.getNetChecksum()):
         # Es wird versucht die Adresse zu erstellen
-        try: new_address_hash_bytes = calcLagacyAddressFromPublicKey(PublicKey)
+        try: new_address_hash_bytes = LagacyAddress._calcAddressHash(PublicKey)
         except: raise Exception('Invalid public key')
 
         # Es wird eine Checksume erstellt
@@ -317,7 +312,6 @@ class LagacyAddress(Address):
     # Gibt die Größe der Adresse in Bytes aus
     def getByteSize(self): return int(len(self.network + self.address_hash + self.checksum))
 
-
 ## Ethereum HashBased Lagacy Address ## TODO
 class LagacyEthereumHashBasedAddress(LagacyAddress):
     def __init__(self): return
@@ -342,6 +336,74 @@ class LagacyEthereumHashBasedAddress(LagacyAddress):
     @classmethod
     def fromEthereumAddress(cls, AddressStr): return
 
+
+
+
+""" Blockchain Address """
+
+## Blockchain Adresse ##
+class BlockchainAddress(object):
+
+    ## Chain Address Types ##
+    class ChainAddressTypes(enu):
+        BURN_ADDRESS = [hashlib.sha384(b'BURN_ADDRESS').digest(), 'BURN']
+
+    # Erstellt eine neue Blockchain eigene Adresse
+    def __init__(self, ChainSeed, AddressType, ChainAddressType, NetworkCMHex=gv_.ChainRoot.getNetChecksum()):        
+        # Der ChainSeed wird gespeichert
+        self.chain_address_type = AddressType.value
+        self.chain_address_hash = hashlib.sha256(ChainSeed + ChainAddressType.value[0] + ChainAddressType.value[1].encode()).digest()[:28]
+        self.address_member = ChainAddressType.value[1]
+
+        # Es wird eine Checksume erstellt
+        checksum_bytes = hashlib.sha3_512(NetworkCMHex + self.chain_address_hash).digest()
+        checksum = checksum_bytes[0:1] + checksum_bytes[32:33] + checksum_bytes[63:64]
+
+        # Das Netzwerk wird abgespeichert
+        self.network = NetworkCMHex
+
+        # Die Netzwerkchecksume wird abgespeichert
+        self.checksum = checksum
+
+        # Dir Adresse wird als Anwendbar Makiert
+        self.can_use = True
+
+    # Gibt die Adresse als String aus
+    def __str__(self): return self.toStr()
+
+    # Vergeleicht zwei Adressen
+    def __eq__(self, other):
+        if isinstance(other, LagacyAddress) == True: return self.getHash(True) == other.getHash(True)
+        if isinstance(other, BlockchainAddress) == True: return self.getHash(True) == other.getHash(True)
+        elif isinstance(other, str) == True: return self.toStr() == other
+        else: return False
+
+    # Diese Funktion gibt die Adresse als String aus
+    def toStr(self, AsBytes=False):
+        if self.can_use == False: raise Exception('Incomplete object')
+        if AsBytes == True: return self.address_member.encode('UTF-8') + b'LCA' + self.network + self.chain_address_hash + self.checksum
+        else: return self.address_member + base58.b58encode(b'LCA' + self.network + self.chain_address_hash + self.checksum, alphabet=BASE58_BET).decode()
+
+    # Gibt den Hash der Adresse aus
+    def getHash(self, asBytes=False):
+        hashx = hashlib.sha3_384()
+        hashx.update(self.address_member.encode('UTF-8'))
+        hashx.update(self.network)
+        hashx.update(self.chain_address_hash)
+        hashx.update(self.checksum)
+        if asBytes == False: return base58.b58encode(hashx.digest(), alphabet=BASE58_BET).decode()
+        else: return hashx.digest()
+
+    # Gibt die Größe der Adresse in Bytes aus
+    def getByteSize(self): return int(len(self.network + self.chain_address_hash + self.checksum))
+
+    # Gibt den Typen der Adresse aus
+    def getType(self): return self.address_member
+
+
+
+
+""" Phantom Addresses """
 
 
 ## Privater Phantom Schlüssel
@@ -410,6 +472,9 @@ class PhantomAddress(Address):
 
 
 
+
+""" Wallet """
+
 ## Wallet Objekt ##
 class Wallet(object):
     # Erstellt eine leere Wallet
@@ -462,7 +527,7 @@ class Wallet(object):
     def genNew(): return Wallet.fromMnemonic(Wallet.genMnemonic()) 
  
 
-# Liest eine Adresse ein
+# Liest eine Adresse ein OLD
 def addressStringReader(AddressIn):
     try: return LagacyAddress.fromSring(AddressIn)
     except: raise Exception('Cant parse Address')

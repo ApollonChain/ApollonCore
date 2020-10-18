@@ -392,6 +392,8 @@ class SignedTransaction:
         root_dict['signatures'] = sigs
         return root_dict
 
+    def getType(self): 'LSIG'
+
     # Erstellt eine Signierte Transaktion aus einer Unsignierten Transaktion welche jedoch alle benötigten Signaturen enthält
     @classmethod
     def createFinalFromUnsignedObjectWithSignatures(cls, UnsignedLagacyTransactionObj):
@@ -580,6 +582,9 @@ class CoinbaseTransaction:
     # Gibt den Zeitstempel der Transaktion aus
     def getTimestamp(self): return self.timestamp
 
+    # Gibt den Typen der Transaktion aus
+    def getType(self): return 'CB'
+
     # Gibt das UTXO als JSON aus
     def toJSON(self):
         root_dict = dict()
@@ -597,12 +602,29 @@ class CoinbaseTransaction:
 
 """ Storage Objects """
 
+## Coinbase Transaktion welche aus dem Storage abgerufen wurde
 class ST_CoinbaseTransaction(CoinbaseTransaction):
+    # Erstellt eine neue Storage CoinBase Transaktion
     def __init__(self, *Utxos, BlockNo, TStamp, Confirmations):
-        super().__init__(*Utxos, BlockNo=BlockNo, TStamp=TStamp)
+        # Es wird versucht das Basisobjekt zu erstellen
+        try: super().__init__(*Utxos, BlockNo=BlockNo, TStamp=TStamp)
+        except Exception as E: raise Exception(E)
+
+        # Es wird geprüft ob es sich bei den Besätigungen um eine gültige Zahl handelt
+        if isinstance(Confirmations, int) == False or Confirmations < 0: raise Exception('CONFIRMATIONS INVALID, ONLY INTEGER')
         self.confirmations = Confirmations
-    def getConfirmations(self): return self.confirmations
-    def isConfirmed(self): return self.confirmations != 0
+    
+    # Gibt an, ob die Transaktion bestätigt ist
+    def getConfirmations(self):
+        if self.confirmations is None: return 0
+        else: return self.confirmations
+    
+    # Gibt an ob die Transaktion bestätigt wurde
+    def isConfirmed(self):
+        if self.confirmations is None: return False
+        else: return self.confirmations != 0
+    
+    # Wandelt die Transaktion in ein JSON um
     def toJSON(self):
         root_dict = dict()
         root_dict['type'] = 'cbt'
@@ -617,4 +639,8 @@ class ST_CoinbaseTransaction(CoinbaseTransaction):
         root_dict['inputs'] = inl
         root_dict['outputs'] = ol
         return root_dict
-    def inBlock(self): return self.block_no
+    
+    # Gibt an, in welchem BLock sich die Transaktion befindet
+    def inBlock(self):
+        if self.block_no is None: return 0
+        else: return self.block_no

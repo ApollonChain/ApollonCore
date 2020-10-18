@@ -5,7 +5,9 @@ import sqlite3
 import hashlib
 
 
+## ChainStorage Object ##
 class ChainStorage(object):
+    # Erstellt ein neues ChainStorage Objekt
     def __init__(self, MasterObject): 
         self.chain_file = None
         self.chain_loaded = False
@@ -41,7 +43,198 @@ class ChainStorage(object):
         # Die Blockhöhe wird zurückgegben
         return blocks[0]
 
-    # Gibt die MetaDaten des Letztenblocks aus
+    # Gibt einen Spizeillen Block aus #TODO
+    def getBlock(self, BlockID):
+        # Es wird geprüft ob eine Chain geladen wurden
+        if self.chain_loaded == False: raise Exception('Objet not created')
+        
+        # Es wird geprüft ob es sich um ein Integer oder einen Blockhash handelt
+        if isinstance(BlockID, int): block_find_sql_quer_str = 'SELECT blocks.block_hash, blocks.block_timestamp, blocks.block_height, blocks.block_root_hash, blocks.block_nonce, (SELECT block_hash FROM blocks WHERE block_height = {} LIMIT 1), blocks.block_diff, blocks.block_root_hash FROM blocks WHERE block_height = {} LIMIT 1'.format(BlockID -1, BlockID)
+        else: raise Exception('INVALID_BLOCK_ID')
+
+        # Der Threadlock wird gesperrt
+        self.thread_lock.acquire()
+        
+        # Es wird eine neue SQL Verbindung aufgebaut
+        try: conn = sqlite3.connect(self.chain_file)
+        except: self.thread_lock.release(); raise Exception('DB Error')
+
+        # Es wird ein SQL Cursor erzeugt
+        try: cur = conn.cursor()
+        except: conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+
+        # Es wird versucht den Aktuellen Block abzurufen
+        try: current_block = cur.execute(block_find_sql_quer_str).fetchone()
+        except: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+        if current_block is None: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('BLOCK_NOT_FOUND')
+        current_block_id = current_block[2]
+        if current_block_id == 1: prev_block_hash = self.master_object.getChainRootHash(True)
+        else: prev_block_hash = current_block[5]
+
+        # Es wird die Anzahl der Blöcke ermittelt
+        try: blocks = cur.execute("SELECT block_height FROM blocks ORDER BY block_height DESC LIMIT 1").fetchone()
+        except: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+        if blocks is None or len(blocks) != 1 or type(blocks[0]) is not int: cur.close(); conn.close(); self.thread_lock.release(); return 0
+        blocks = blocks[0] + 1
+
+        # Es werden alle Transaktionen des Blocks abgerufen
+        try: block_txns = cur.execute("SELECT transaction_id, transaction_hash, transaction_root_hash, transaction_type, transaction_block, transaction_timestamp FROM lagacy_transactions WHERE transaction_block = {}".format(current_block_id)).fetchall()
+        except Exception as E: cur.close(); conn.close(); self.thread_lock.release(); raise Exception(E)
+        txnl = list()
+        for i in block_txns: txnl.append(i[0])
+        txnstr = str(tuple(txnl))
+        if txnstr[-2] == ',': txnstr = txnstr.replace(txnstr[-2],"")
+
+        # Es werden alle Eingänge Abgerufen
+        try: ins = cur.execute("SELECT input_transaction_id, input_type, input_utxo_hash, input_output_utxo_id, input_reward_coin_hid, input_reward_amount, input_block_height, input_one_time_reward_hash, input_height FROM lagacy_input_utxos WHERE input_transaction_id IN {}".format(txnstr)).fetchall()
+        except Exception as E: cur.close(); conn.close(); self.thread_lock.release(); raise Exception(E)
+        if ins == None or len(ins) == 0: conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+
+        # Es werden alle ausgänge abgerufen
+        try: outs = cur.execute("""
+        SELECT
+            lagacy_output_utxos.output_transaction_id,
+            lagacy_output_utxos.output_utxo_id,
+            lagacy_output_utxos.output_amount,
+            lagacy_output_utxos.output_coin_hid,
+			lagacy_output_utxos.output_reciver_address_id,
+			lagacy_output_utxos.output_utxo_hash,
+			lagacy_output_utxos.output_utxo_type,
+			lagacy_addresses.address,
+			lagacy_addresses.address_hash,
+	        CASE lagacy_input_utxos.input_output_utxo_id 
+                WHEN lagacy_output_utxos.output_utxo_id
+                    THEN 1
+                ELSE 0
+            END spendch
+        FROM lagacy_output_utxos
+        LEFT JOIN lagacy_input_utxos ON lagacy_input_utxos.input_output_utxo_id = lagacy_output_utxos.output_utxo_id
+		LEFT JOIN lagacy_addresses ON lagacy_addresses.address_id = lagacy_output_utxos.output_reciver_address_id 
+        WHERE lagacy_output_utxos.output_transaction_id IN {}""".format(txnstr)).fetchall()
+        except: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+        if outs == None or len(outs) == 0: conn.close(); self.thread_lock.release(); raise Exception('DB Error')
+        
+        # Es werden alle Signaturen abgerufen
+        #try: sigs = cur.execute("SELECT sign_transaction_id FROM lagacy_transactions_signatures WHERE sign_transaction_id IN {}".format(txnstr)).fetchall()
+        #except Exception as E: cur.close(); conn.close(); self.thread_lock.release(); raise Exception(E)
+
+        # Die SQL Verbindung wird geschlossen
+        try: cur.close(); conn.close(); self.thread_lock.release()
+        except: raise Exception('STORAGE_SQL_ERROR')
+
+        # Die Transaktionen werden zusammengefasst
+        retra_list = list()
+        from apollon.transaction import ST_CoinbaseTransaction, SignedTransaction
+        from apollon.utxo import CoinbaseInUtxo, ST_LagacyOutUtxo
+        from apollon.apollon_address import LagacyAddress
+        from apollon.atime import ATimeString
+        for i in block_txns:
+            # Speichert die UTXOs zwischen
+            utxos = list()
+
+            # Die Eingänge werden verarbeitet
+            for inp in ins:
+                # Es wird geprüft ob es sich um die Aktuelle Transaktion handelt
+                if inp[0] == i[0]:
+                    # Es wird geprüft ob es sich um ein Coinbase Reward handelt
+                    if inp[1] == 0:
+                        coinobj = None
+                        # Es wird geprüft ob es sich um einen Zulässigen Coin handelt
+                        for coib in self.master_object.getCoins():
+                            if coib.getCoinID(True) == inp[4]: coinobj = coib; break
+                        if coinobj is None: raise Exception('Unkown Coin')
+
+                        # Es wird geprüft ob der Reward Hash korrekt ist
+                        if coinobj.validateReward(int(inp[5], 16),inp[6]) == False: raise Exception('Invalid reward')
+
+                        # Es wird geprüft, ob der Rewardhash korrekt ist
+                        oth = coinobj.createOneTimeRewardHash(inp[6], True)
+                        if oth != inp[7]: raise Exception('Invalid reward one time hash')
+
+                        # Es wird versucht das Inout UTXO nachzubilden
+                        try: nwo_inp = CoinbaseInUtxo(inp[6], coinobj, int(inp[5], 16), oth)
+                        except: raise Exception('Address cant parse')
+                        utxos.append(nwo_inp)
+
+            # Die Ausgänge werden verarbeitet
+            for onp in outs:
+                # Es wird geprüft ob es sich um die Aktuelle Transaktion handelt
+                if onp[0] == i[0]:
+                    # Es wird geprüft ob es sich um ein Standart Output handelt
+                    if onp[6] == 10:
+                        # Es wird geprüft ob es sich um einen Zulässigen Coin handelt
+                        coinobj = None
+                        for coib in self.master_object.getCoins():
+                            if coib.getCoinID(True) == onp[3]: coinobj = coib; break
+                        if coinobj is None: raise Exception('Unkown Coin')
+
+                        # Es werden alle Inputs mit dem Selben Coin Abgerufen
+                        inch = list()
+                        for inh in utxos:
+                            if inh.getCoin().getCoinID(True) == coinobj.getCoinID(True): inch.append(inh)
+
+                        # Die Verwendete Ausgangsadresse wird abgerufen
+                        try: resolv_addr = LagacyAddress.fromSring(onp[7])
+                        except: raise Exception('Address cant parse')
+
+                        # Es wird geprüft ob der Verwendete Address Hash übereinstimmt
+                        if resolv_addr.getHash(True) != onp[8]: raise Exception('Invalid Address')
+
+                        # Es wird versucht das Ausgangs UTXO nachzubilden
+                        try: outxo = ST_LagacyOutUtxo(resolv_addr, int(onp[2], 16), coinobj, bool(onp[9]) ,*inch)
+                        except: raise Exception('Address cant parse')
+                        utxos.append(outxo)
+
+            # Es wird geprüft ob es sich um eine Coinbase Transaktion handelt
+            if i[3] == 0:
+                # Die Uhrzeit wird aus der Datenbank abgerufen
+                try: timestr = ATimeString.readFromDBStr(i[5])
+                except: raise Exception('DB Error A')
+
+                # Die Transaktion wird Rückgebildet
+                try: cb = ST_CoinbaseTransaction(*utxos, BlockNo=i[4], TStamp=timestr, Confirmations=int(blocks - i[4]))
+                except Exception as E: print(E); raise Exception(E)
+
+                # Es wird gepürft ob die Transaktion erfolgreich erstellt wurde
+                if i[1] != cb.getTxHash(True): raise Exception('Invalid transaction')
+
+                # Die Transaktion wird in die Liste der Verfügbaren Transaktionen geschrieben
+                retra_list.append(cb)
+
+        # Der Zeitstempel des Blocks wird erstellt
+        try: block_timestamp = ATimeString.readFromDBStr(current_block[1])
+        except: raise Exception('INVALID_BLOCK_TIME')
+
+        # Der Miner des Blocks wird ermitelt
+        first_cb_transaction = block_txns[0]
+        tota_address = None
+        for _oi in outs:
+            # Es wird geprüft ob das Ausgangs UTXO zu dieser Transaktion gehört
+            if first_cb_transaction[0] == _oi[0]:
+                # Es wird geprüft ob bereits eine Adresse vohanden ist
+                if tota_address is None: tota_address = _oi[7]
+                else:
+                    if tota_address != _oi[7]: raise Exception('INVALID_BLOCK_NO_MULTIPLE_MINER_ADDRESSES')
+        if tota_address is None: raise Exception('INVALID_BLOCK_THIS_BLOCK_HAS_NOT_MINER')
+        try: miner_adr = LagacyAddress.fromSring(tota_address)
+        except: raise Exception('INVALID_BLOCK::INVALID_MINER_ADDRESS')
+
+        # Der Block gebaut
+        from apollon.block import BlockConstruct
+        try: _rbb = BlockConstruct(prev_block_hash, current_block_id, miner_adr, block_timestamp, int(current_block[6], 16), *retra_list)
+        except: raise Exception('INVALID_BLOCK')
+        if _rbb.getRootHash(True) != current_block[7]: raise Exception('INVALID_BLOCK_HASH')
+
+        # Der Block wird vollständig nachgebaut
+        from apollon.block import ST_MinedBlock
+        try: _frbb = ST_MinedBlock.fromConstructWithNonce(_rbb, int(current_block[4], 16), blocks - current_block_id, miner_adr)
+        except: raise Exception('INVALID_BLOCK')
+        if _frbb.getBlockHash(True) != current_block[0]: raise Exception('INVALID_BLOCK')
+
+        # Die SQL Verbindug wird geschlossen
+        return _frbb
+
+    # Gibt die MetaDaten der letzten Blöcke aus # TODO
     def getLastBlocksMetaData(self, Blocks=50, Page=1):
         # Es wird geprüft ob eine Chain geladen wurden
         if self.chain_loaded == False: raise Exception('Objet not created')
@@ -76,7 +269,7 @@ class ChainStorage(object):
         # Die Blockhöhe wird zurückgegben
         return relis
 
-    # Gibt die MetaDaten des Letzten Block aus
+    # Gibt die MetaDaten des Letzten Block aus # TODO
     def getLastBlockMetaData(self): 
         # Es wird geprüft ob eine Chain geladen wurden
         if self.chain_loaded == False: raise Exception('Objet not created')
@@ -108,37 +301,6 @@ class ChainStorage(object):
         rdic['nonce'] = lblock[2]
         rdic['block_hash'] = lblock[3]
         return rdic
-
-    # Gibt den Letzen Block der Kette aus
-    def getLastBlock(self):
-        # Es wird geprüft ob die Chain verwendet werden kann
-        if self.chain_loaded == False: raise Exception('Objet not created')
-        if self.getBlockHeight() <= 1 and self.getBlockHeight() != 1: raise Exception('Chain has no blocks')
-
-        # Der Threadlock wird gesperrt
-        self.thread_lock.acquire()
-
-        # Es wird eine neue SQL Verbindung aufgebaut
-        try: conn = sqlite3.connect(self.chain_file)
-        except: self.thread_lock.release(); raise Exception('DB Error')
-
-        # Es wird ein MySQL Cursor erzeugt
-        try: cur = conn.cursor()
-        except: conn.close(); self.thread_lock.release(); raise Exception('DB Error')
-
-        # Es wird die Anzahl der Blöcke ermittelt
-        try: blocks = cur.execute("SELECT COUNT(*) FROM blocks").fetchone()
-        except: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('DB Error')
-        # Es wird geprüft ob der Wert ermittelt werden konnte
-        if blocks is None or len(blocks) != 1 or type(blocks[0]) is not int: raise Exception('Invalid request')
-        
-        # Die SQL Verbindug wird geschlossen
-        try: cur.close(); conn.close()
-        except: self.thread_lock.release(); raise Exception('DB Error')
-
-        # Der Threadlock wird freigegeben
-        self.thread_lock.release()
-        return blocks[0]
 
     # Fügt der Kette einen neuen Block hinzu TODO
     def addBlock(self, BlockObj):
@@ -295,17 +457,17 @@ class ChainStorage(object):
 
         return
 
-    # Gibt das Verfügabre Guthaben einer Adresse aus
-    def getAddressDetails(self, Addresses):
+    # Gibt das Verfügabre Guthaben einer Adresse aus # TODO
+    def getAddressDetails(self, Addresses, *MempoolTransactions):
         # Es wird geprüft ob eine Chain geladen wurden
         if self.chain_loaded == False: raise Exception('Objet not created')
         
+        # Es wird geprüft ob es sich um eine Lagacy oder Chain eigene Adresse handelt
+        from apollon.apollon_address import LagacyAddress, BlockchainAddress
+        if isinstance(Addresses, LagacyAddress) == False and isinstance(Addresses, BlockchainAddress) == False: raise Exception('Invalid address type {}'.format(type(Addresses)))
+
         # Der Threadlock wird gesperrt
         self.thread_lock.acquire()
-        
-        # Es wird eine Liste alle Verfügabren Coins angelegt
-        chain_coins = list()
-        for i in self.master_object.getCoins(): chain_coins.append({ 'coin' : i, 'total_recived' : 0, 'total_send' : 0, 'amount' : 0 })
 
         # Es wird eine neue SQL Verbindung aufgebaut
         try: conn = sqlite3.connect(self.chain_file)
@@ -316,9 +478,10 @@ class ChainStorage(object):
         except: conn.close(); self.thread_lock.release(); raise Exception('DB Error')
 
         # Die Adresse wird aus dem Storage abgerufen
+        from apollon.address_utils import AddressCoinDetails, AddressChainDetails
         try: address_id = cur.execute("SELECT address_id FROM lagacy_addresses WHERE address_hash = ? LIMIT 1", [Addresses.getHash(True)]).fetchone()
         except: cur.close(); conn.close(); self.thread_lock.release(); raise Exception('DB Error')
-        if address_id is None: conn.close(); self.thread_lock.release(); return { 'coin_values' : chain_coins, 'total_txn' : 0 }
+        if address_id is None: conn.close(); self.thread_lock.release(); return AddressChainDetails(Addresses, 0, *self.master_object.getCoins())
 
         # Die Anzahl aller Transaktionen wird ermittelt
         try: total_address_transactions = cur.execute("SELECT COUNT(*) FROM lagacy_transactions WHERE lagacy_transactions.transaction_id in (SELECT lagacy_output_utxos.output_transaction_id FROM lagacy_output_utxos WHERE lagacy_output_utxos.output_reciver_address_id = ?)", [address_id[0]]).fetchone()[0]
@@ -345,20 +508,22 @@ class ChainStorage(object):
         try: cur.close(); conn.close(); self.thread_lock.release()
         except: raise Exception('STORAGE_SQL_ERROR')
 
+        # Die Adressedetails werden erstellt
+        address_details = AddressChainDetails(Addresses, total_address_transactions, *self.master_object.getCoins())
+
         # Es werden alle Eingänge zusammen gezählt
         for outx in unspent_utxo:
             chain_coin_check_resolv = self.master_object.getChainCoinByID(outx[2])
             if chain_coin_check_resolv is None: raise Exception('Invalid Coin')
-            for coinobj in chain_coins:
-                if coinobj['coin'].getCoinID(True) == chain_coin_check_resolv.getCoinID(True):
-                    coinobj['total_recived'] += int(outx[1], 16)
-                    if outx[3] == 0: coinobj['amount'] += int(outx[1], 16)
-                    else: coinobj['total_send'] += int(outx[1], 16)
+            for coinobj in self.master_object.getCoins():
+                if coinobj.getCoinID(True) == chain_coin_check_resolv.getCoinID(True):
+                    address_details.addInput(chain_coin_check_resolv, int(outx[1], 16), True)
+                    if outx[3] != 0: address_details.addOutput(chain_coin_check_resolv ,int(outx[1], 16), True)
 
         # Das Guthaben wird zurückgegben
-        return dict({ 'coin_values' : chain_coins, 'total_txn' : total_address_transactions })
+        return address_details
 
-    # Gibt alle Transaktionen einer Adresse aus
+    # Gibt alle Transaktionen einer Adresse aus # TODO
     def getAddressTransactions(self, *MemoryPoolTransactions, Addresses, MaxEntries=25, CurrentPage=1):
         # Es wird geprüft ob eine Chain geladen wurden
         if self.chain_loaded == False: raise Exception('Objet not created')
@@ -386,7 +551,8 @@ class ChainStorage(object):
         if address_id is None: conn.close(); self.thread_lock.release(); return list()
 
         # Es wird geprüft wieviele Einträge aberufen werden
-        if isinstance(MaxEntries, int) == True: cmd = "SELECT transaction_id, transaction_hash, transaction_root_hash, transaction_type, transaction_block, transaction_timestamp FROM lagacy_transactions WHERE transaction_id IN (SELECT output_transaction_id FROM lagacy_output_utxos WHERE output_reciver_address_id = ?) ORDER BY transaction_block DESC LIMIT 0,{}".format(MaxEntries)
+        from apollon.utils import sqlPager
+        if isinstance(MaxEntries, int) == True: cmd = "SELECT transaction_id, transaction_hash, transaction_root_hash, transaction_type, transaction_block, transaction_timestamp FROM lagacy_transactions WHERE transaction_id IN (SELECT output_transaction_id FROM lagacy_output_utxos WHERE output_reciver_address_id = ?) ORDER BY transaction_block DESC LIMIT {}".format(sqlPager(MaxEntries, CurrentPage))
         else: cmd = "SELECT transaction_id, transaction_hash, transaction_root_hash, transaction_type, transaction_block, transaction_timestamp FROM lagacy_transactions WHERE transaction_id IN (SELECT output_transaction_id FROM lagacy_output_utxos WHERE output_reciver_address_id = ?) ORDER BY transaction_block DESC"
 
         # Es werden all Transaktionen abgerufen
@@ -518,9 +684,9 @@ class ChainStorage(object):
         return retra_list
 
     # Gibt die Version des Storage aus
-    def getVersion(self): return "0.1"
+    def getVersion(self): return "0.2"
 
-    # Lädt eine Bereits vorhandene Blockchain
+    # Lädt eine Bereits vorhandene Blockchain # TODO
     @classmethod
     def fromFile(cls, DbFile, MasterObject, FullValidate):
         # Es wird geprüft ob die Datei vorhanden ist

@@ -1,13 +1,11 @@
-class ChainConfiguration:
-    ChainCoins = list()
-    
-
+## Blockchain Object ##
 class Blockchain:
+    # Es wird ein neues Blockchain Objekt erstellt
     def __init__(self, RootConfig, ChainDB):
         # Blockchain Daten
+        from threading import Lock
         self.mempool = list()
         self.root_conf = RootConfig
-        from threading import Lock
         self.thread_lock = Lock()
 
         ## Chain Storage
@@ -33,6 +31,10 @@ class Blockchain:
             i._atempChain(self)
             self.current_coins.append(i)
         
+        # Die Chain eigenen Adressen werden erstellt
+        from apollon.apollon_address import BlockchainAddress, AddressTypes
+        self.burn_address = BlockchainAddress(ChainSeed=self.root_conf.getChainSeed(True), AddressType=AddressTypes.ChainOwnAddress, ChainAddressType=BlockchainAddress.ChainAddressTypes.BURN_ADDRESS, NetworkCMHex=self.root_conf.getNetChecksum(True))
+
     # Started das Mining
     def startMining(self, RewardAddress):
         # Es wird geprüft ob eine gültige Adresse übergeben wurde
@@ -53,43 +55,57 @@ class Blockchain:
     def startDashboard(self):
         self.dashboard.start()
 
-    # Fügt eine Transaktion hinzu
+    # Fügt eine Transaktion hinzu TODO
     def addTransaction(self, *TransactionObj):
         from apollon.transaction import SignedTransaction
         for i in TransactionObj:
             assert isinstance(i, SignedTransaction)
             assert i.signaturesAreValidate() == True
+
+            # Es wird geprüft, ob die Verwendeten UTXO's bereits ausgegeben wurden
             self.mempool.append(i)
 
     # Gibt die Aktuelle Block Höhe aus
     def getBlockHeight(self): return self.ChainStorageObj.getBlockHeight()
 
-    # Fügt der Blockchain einen neuen Block hinzu
+    # Fügt der Blockchain einen neuen Block hinzu TODO
     def addBlock(self, BlockObj):
+        # Es wird geprüft ob es sich um einen Gültigen Block handelt
+        if BlockObj.getHeight() != self.getBlockHeight() + 1: raise Exception('INVALID BLOCK HEIGHT')
+
         self.ChainStorageObj.addBlock(BlockObj)
         self.last_block = BlockObj
 
+    # Gibt einen Block aus
+    def getBlock(self, BlockID):
+        return self.ChainStorageObj.getBlock(BlockID)
+
+    # Gibt den Hashawert des Blockes aus, welchers als nächstes Gemint werden soll TODO
+    def getBlockTemplate(self): pass
+
+    # Erstellt einen neuen Block aus dem Blockblob sowie der Nonce  TODO
+    def addBlockByMinedTemplate(self, BlobHash, Nonce, MinerAddress): pass
+
     # Gibt alle Coins der Blockchain aus
-    def getChainCoins(self): return self.current_coins
+    def getChainCoins(self): 
+        if self.current_coins is not None: return self.current_coins
+        else: return []
     
-    # Gibt die Hashrate des Miners aus
+    # Gibt die Hashrate des Miners aus TODO
     def getHashrate(self): return self.miner.getHashRate()
 
-    # Gibt die Burning Adresse der Chain aus
-    def getChainBurningAddress(self):
-        return
+    # Gibt die Burning Adresse der Chain aus TODO
+    def getChainBurningAddress(self): return self.burn_address
 
-    # Gibt die Belohnug für den Aktuellen Block             
+    # Gibt die Belohnugen für den Aktuellen Block             
     def GetRewardForBlock(self, BlockHeight):
         from apollon.coin import CoinValueUnit
         lis = list()
         for i in self.getChainCoins():
-            # Es wird geprüft ob es sich um einen Mining fähigen Coin handelt
-            if i.isMiningLabel() == True and i.hasRewardForBlock(BlockHeight) == True:
-                cnv = CoinValueUnit(i); cnv.add(i.miningReward(BlockHeight)); lis.append(cnv)   # Der Coin wird hinzugefügt
+            if i.isMiningLabel() == True and i.hasRewardForBlock(BlockHeight) == True: cnv = CoinValueUnit(i); cnv.add(i.miningReward(BlockHeight)); lis.append(cnv)
         return lis
 
-    # Diese Funktion überprüft die Nonce des geminten Hashes
+    # Diese Funktion überprüft die Nonce des geminten Hashes TODO
     def validateMinedHash(self, BlockHeight, BlockHash, Nonce): return True
 
     # Gibt einen Coin der Chain anhand seiner ID aus
@@ -124,35 +140,18 @@ class Blockchain:
     def getAddressDetails(self, Addresses):
         # Es werden alle Adress MetaDaten aus dem Storage Abgerufen
         try: storage_data = self.ChainStorageObj.getAddressDetails(Addresses)
-        except Exception as E: raise Exception(E)
+        except Exception as E: print(E); raise Exception('Storage data')
 
-        # Es wird eine Liste, mit allen Coin der Blockchain erstellt
-        chain_coins = list()
-        for i in self.root_conf.getCoins():
-            r = dict()
-            r['name'] = i.getName()
-            r['symbol'] = i.getSymbol()
-            r['coin_id'] = i.getCoinID(False)
-            r['confirmed'] = 0
-            r['unconfirmed'] = 0
-            r['total_recived'] = 0
-            r['total_send'] = 0
-            chain_coins.append(r)
+        # Es wird geprüft ob ein gültiges Objekt abgerufen wurde
+        from apollon.address_utils import AddressChainDetails
+        if isinstance(storage_data, AddressChainDetails) == False: raise Exception('Invalid chain storage data')
 
-        # Die Daten aus dem Storage werden geschrieben
-        for i in chain_coins:
-            for x in storage_data['coin_values']:
-                if i['coin_id'] == x['coin'].getCoinID(False):
-                    i['total_recived'] += x['total_recived']
-                    i['total_send'] += x['total_send']
-                    i['confirmed'] += x['amount']
-
-        # Die Daten werden zurückegeben
-        return dict({ 'amount' : chain_coins, 'total_transactions' : storage_data['total_txn'] })    
+        # Das abgerufene Objekt wird zurückgegeben
+        return storage_data
 
     # Gibt die Schwierigkeit des Aktuellen Blocks an
     def getBlockDiff(self, BlockHeight=None):
-        return 460
+        return 240
 
     # Erstellt eine Vollständig neue Blockchain
     @staticmethod
@@ -175,25 +174,15 @@ class Blockchain:
         # Die Chain wurde erfolgreich erstellt
         return 0
 
-    # Gibt alle Informationen über eine Spizielle Lagacy Adresse aus
-    def getLagacyAddressRAW(self, Address):
-        # Es werden alle Transaktionen, welche diese Adresse betreffen aus dem Memorypool abgerufen
-        #mempool_transactions = list()
-
-        # Es werden alle Transaktionen aus dem Storage abgerufen
-        #storage_transactions = list()
-
-        # Beide Listen werden zusammengeführt
-        pass
-
     # Gibt alle Transaktionen einer Adresse aus
     def getLagacyTransactionsByAddress(self, *Addresses, MaxEntries=25, CurrentPage=1, OutAsJSON=False):
         # Es wird geprüft ob die Adressen korrekt sind
-        from apollon.apollon_address import LagacyAddress
+        from apollon.apollon_address import LagacyAddress, BlockchainAddress
         for adr_i in Addresses:
-            if isinstance(adr_i, LagacyAddress) == False: raise Exception('Invalid Address')
+            if isinstance(adr_i, LagacyAddress) == False and isinstance(adr_i, BlockchainAddress) == False: raise Exception('Invalid Address')
 
         # Es wird geprüft ob die MaxEntries korrekt ist
+        if isinstance(MaxEntries, int) == False: raise Exception('Invalid MaxEntries')
 
         # Es wird geprüft ob es sich um eine Zuläassige Seitenangabe handelt
         if isinstance(CurrentPage, int) == False or CurrentPage < 1: raise Exception('Invalid CurrentPage, only Numbers')
@@ -203,7 +192,7 @@ class Blockchain:
 
         # Die Transaktionen werden aus dem Memorypool abgerufen
         mempool_res = list()
-        
+
         # Alle Adressen werden in der Datenbank abgerufen
         storage_data = list()
         for adri in Addresses:
@@ -218,11 +207,3 @@ class Blockchain:
         
         # Die Daten werden zurückgegeben
         return storage_data
-
-    # Ruft die Aktuellen Smart Contract Daten ab
-    def getEthereumCrossMempoolTransactions(self):
-        from web3 import Web3   
-        w3 = Web3(Web3.WebsocketProvider("ws://ropsten.infura.io/v3"))
-        abi = [{"constant":True,"inputs":[],"name":"mintingFinished","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint256"}],"payable":False,"type":"function"},{"constant":False,"inputs":[],"name":"unpause","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"}],"name":"mint","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"paused","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":True,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":False,"type":"function"},{"constant":False,"inputs":[],"name":"finishMinting","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":False,"inputs":[],"name":"pause","outputs":[{"name":"","type":"bool"}],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"owner","outputs":[{"name":"","type":"address"}],"payable":False,"type":"function"},{"constant":True,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"_to","type":"address"},{"name":"_amount","type":"uint256"},{"name":"_releaseTime","type":"uint256"}],"name":"mintTimelocked","outputs":[{"name":"","type":"address"}],"payable":False,"type":"function"},{"constant":True,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"remaining","type":"uint256"}],"payable":False,"type":"function"},{"constant":False,"inputs":[{"name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"payable":False,"type":"function"},{"anonymous":False,"inputs":[{"indexed":True,"name":"to","type":"address"},{"indexed":False,"name":"value","type":"uint256"}],"name":"Mint","type":"event"},{"anonymous":False,"inputs":[],"name":"MintFinished","type":"event"},{"anonymous":False,"inputs":[],"name":"Pause","type":"event"},{"anonymous":False,"inputs":[],"name":"Unpause","type":"event"},{"anonymous":False,"inputs":[{"indexed":True,"name":"owner","type":"address"},{"indexed":True,"name":"spender","type":"address"},{"indexed":False,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":False,"inputs":[{"indexed":True,"name":"from","type":"address"},{"indexed":True,"name":"to","type":"address"},{"indexed":False,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}]
-        contract = w3.eth.contract(Web3.toChecksumAddress("0x3b69af380941a05c87c0aa9f6e618b7898852951"), abi=abi)
-        balance = contract.functions.balanceOf('0xFa618a5a36B0Cc99845F36ddDCF7AC54c2aB02F9').call()

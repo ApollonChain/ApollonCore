@@ -8,23 +8,24 @@
         <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-wallet" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path fill-rule="evenodd" d="M0 3a2 2 0 0 1 2-2h13.5a.5.5 0 0 1 0 1H15v2a1 1 0 0 1 1 1v8.5a1.5 1.5 0 0 1-1.5 1.5h-12A2.5 2.5 0 0 1 0 12.5V3zm1 1.732V12.5A1.5 1.5 0 0 0 2.5 14h12a.5.5 0 0 0 .5-.5V5H2a1.99 1.99 0 0 1-1-.268zM1 3a1 1 0 0 0 1 1h12V2H2a1 1 0 0 0-1 1z"/>
         </svg>
-        Emissions
+        Emission
       </h5>
       <div class="card-body bg-light">
         <div class="container">
           <div class="row">
             {% for i in coins %}
-            <div class="col-6">
+            <div class="col-sm-12 col-lg-6 mb-1 mt-1">
               <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title"><b>{{ i.getName() }}&nbsp;({{ i.getSymbol() }})</b></h5>
+                <div class="card-body row">
+                  <p class="h5 card-title col-10"><b>{{ i.getName() }}&nbsp;({{ i.getSymbol() }})</b></p>
+                  
                   {% if i.totalSupply() != -1 %}
-                  <p class="card-text text-dark"><b>Max Supply:</b>&nbsp;{{ i.totalSupply(True) }}</p>
+                  <p class="card-text text-dark col-12"><b>Max Supply:</b>&nbsp;{{ i.totalSupply(True) }}</p>
                   {% else %}
-                  <p class="card-text text-dark"><b>Max Supply:</b>&nbsp;Unlimited</p>
+                  <p class="card-text text-dark col-12"><b>Max Supply:</b>&nbsp;Unlimited</p>
                   {% endif %}
-                  <p class="card-text text-dark"><b>Circulating Supply:</b>&nbsp;{{ i.getCirculatingSupplyByBlock(True) }}</p>
-                  <p class="card-subtitle mb-2 text-muted" style="font-size: 12px;"><b>Coin ID:</b>&nbsp;{{ i.getCoinID() }}</p>
+                  <p class="card-text text-dark col-12"><b>Circulating Supply:</b>&nbsp;{{ i.getCirculatingSupplyByBlock(True) }}</p>
+                  <p class="card-subtitle mb-2 text-muted col-12" style="font-size: 12px;"><b>Coin ID:</b>&nbsp;{{ i.getCoinID() }}</p>
                 </div>
               </div>
             </div>
@@ -35,56 +36,4 @@
     </div>
   </div>
 </div>
-<div class="row" style="padding-top: 2.5em;">
-  <div class="col-sm">
-    <div class="card">
-      <h5 class="card-header bg-primary text-white">
-        <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-cash" fill="currentColor">
-          <path fill-rule="evenodd" d="M15 4H1v8h14V4zM1 3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H1z"/>
-          <path d="M13 4a2 2 0 0 0 2 2V4h-2zM3 4a2 2 0 0 1-2 2V4h2zm10 8a2 2 0 0 1 2-2v2h-2zM3 12a2 2 0 0 0-2-2v2h2zm7-4a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
-        </svg>
-        Rewards
-      </h5>
-      <div class="card-body bg-light">
-          <div class="list-group">
-              {% for i in lblocks %}
-              <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1">
-                    <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box-seam" fill="currentColor">
-                      <path fill-rule="evenodd" d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2l-2.218-.887zm3.564 1.426L5.596 5 8 5.961 14.154 3.5l-2.404-.961zm3.25 1.7l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
-                    </svg>
-                    <b>Block:</b>
-                    <span class="text-primary">{{ i.getBlockHeight() }}</span></h5>
-                  <small><b>Transactions:</b> <span class="text-primary">{{ i.getTxCount() }}</span></small>
-                </div>
-                <p class="mb-1"><b>Hash:</b> <span class="text-primary">{{ i.getBlockHash() }}</span></p>
-                <small><b>Timestamp:</b> <span class="text-primary">{{ i.getTimestamp() }}</span></small>
-              </a>
-              {% endfor %}
-          </div>
-      </div>
-    </div>
-  </div>
-</div>
-<nav class="d-flex justify-content-center" aria-label="Page navigation example" style="padding-top: 1em;">
-  <ul class="pagination">
-    <li class="page-item">
-      <a class="page-link" href="#" aria-label="Previous">
-        <span aria-hidden="true">&laquo;</span>
-        <span class="sr-only">Previous</span>
-      </a>
-    </li>
-    <li class="page-item"><a class="page-link" href="#">1</a></li>
-    <li class="page-item"><a class="page-link" href="#">2</a></li>
-    <li class="page-item"><a class="page-link" href="#">3</a></li>
-    <li class="page-item">
-      <a class="page-link" href="#" aria-label="Next">
-        <span aria-hidden="true">&raquo;</span>
-        <span class="sr-only">Next</span>
-      </a>
-    </li>
-  </ul>
-</nav>
-
 {% endblock %}

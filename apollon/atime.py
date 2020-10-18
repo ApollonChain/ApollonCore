@@ -1,5 +1,6 @@
 import datetime
 
+## Apollon Time String Object ##
 class ATimeString(object):
     timeobject = None
 
@@ -26,6 +27,9 @@ class ATimeString(object):
         hu.update(str(self.toDBStr(True)).encode())
         if AsBytes == True: return hu.digest()
         else: from apollon.utils import encodeBase58; return encodeBase58(hu.digest())
+
+    # Gibt die Größe des Zeitstempels aus
+    def getSize(self): return 0
 
     # Erstellt einen neuen Zeitstempel String
     @classmethod

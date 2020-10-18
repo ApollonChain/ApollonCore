@@ -1,7 +1,6 @@
 
 """ Default Objects """
 
-
 ## CoinBaseInput UTXO ## TODO
 class CoinbaseInUtxo(object):
     def __init__(self, BlockHeight, CoinObj, Value, OneTimeRewardHashBytes):
@@ -39,7 +38,9 @@ class CoinbaseInUtxo(object):
         else: from apollon import BASE58_BET; return base58.b58encode(hli.digest(), alphabet=BASE58_BET).decode()
 
     # Gibt den Wert des UTXO aus
-    def getCoinValue(self, InSmallestUnit=True): return self.value
+    def getCoinValue(self, InSmallestUnit=True):
+        if InSmallestUnit == True: return self.value
+        else: return self.coin_obj.calcSmallestToPUnit(self.value)
 
     # Gibt den Coin des UTXO aus
     def getCoin(self): return self.coin_obj
@@ -59,6 +60,9 @@ class CoinbaseInUtxo(object):
     def getOneTimeHash(self, AsBytes=False):
         if AsBytes == True: return self.one_time_reward_hash
         else: from apollon.utils import encodeBase58; return encodeBase58(self.one_time_reward_hash)
+
+    # Gibt den UTXO Typ aus
+    def getType(self): return 'CBRW'
 
     # Gibt das UTXO als JSON aus
     def toJSON(self):
@@ -129,6 +133,9 @@ class FeeInputUtxo(object):
         if self.value is None: return False
         if self.block_height is None: return False
         return True
+
+    # Gibt den UTXO Typ aus
+    def getType(self): return 'CBFU'
 
     # Gibt das UTXO als JSON aus
     def toJSON(self):
@@ -307,6 +314,9 @@ class LagacyOutUtxo(object):
     # Gibt den Verwendeten Coin aus
     def getCoin(self): return self.coin_obj
 
+    # Gibt den UTXO Typ aus
+    def getType(self): return 'LOO'
+
     # Gibt die Position des UTXOS innerhalb einer Transaktion aus
     def getHeight(self): return self.place_in_transaction
 
@@ -341,12 +351,17 @@ class LagacyOutUtxo(object):
 
 """ Storage Objects """
 
-
+## Storage LagacyOutput Utxos Object ##
 class ST_LagacyOutUtxo(LagacyOutUtxo):
+    # Erstellt ein neues Ausgangsobjekt
     def __init__(self, ReciverAccountAddress, CoinValue, SelectedCoin, Spended ,*InUtxos):
         super().__init__(ReciverAccountAddress, CoinValue, SelectedCoin, *InUtxos)
         self.spended = Spended
+    
+    # Gibt an ob der Ausgang ausgegeben wurde
     def isSpend(self): return self.spended
+   
+    # Wandelt den Ausgang in JSON um
     def toJSON(self):
         root_dict = dict()
         root_dict['type'] = 'lgou'
@@ -363,10 +378,7 @@ class ST_LagacyOutUtxo(LagacyOutUtxo):
 
 
 
-
 """ Funktionen """
-
-
 
 # Erstellt ein eingangs UTXOs für die Gebühren
 def createFeeInputUtxo(CoinObj, BlockHeight, *Transactions):
@@ -382,7 +394,3 @@ def createFeeInputUtxo(CoinObj, BlockHeight, *Transactions):
 # Diese Funktion ermittelt aus allen Eingängen die Totale Summe
 def getTotalSumeFromInputs(CoinObj, *InputLagacyUtxos):
     return 0
-
-# Diese Funktion ermittelt den Input Root Hash aus allen Input UTXOS
-def getInputRootHash(SelectedCoin, AsBytes=False, *InputLagacyUtxos):
-    return

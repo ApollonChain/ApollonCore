@@ -1,0 +1,66 @@
+{% extends 'style.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <p class="h5 card-header bg-primary text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-border-width" fill="currentColor">
+                    <path d="M0 3.5A.5.5 0 0 1 .5 3h15a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5H.5a.5.5 0 0 1-.5-.5v-2zm0 5A.5.5 0 0 1 .5 8h15a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H.5a.5.5 0 0 1-.5-.5v-1zm0 4a.5.5 0 0 1 .5-.5h15a.5.5 0 0 1 0 1H.5a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                &nbsp;Transaction details
+            </p>
+            <div class="card-body bg-light">
+                <dl class="row">
+                    <dt class="col-sm-3">Transaction hash:</dt>
+                    <dd class="col-sm-9 text-truncate">{{ txid }}</dd>
+                    
+                    <dt class="col-sm-3">Confirmations:</dt>
+                    <dd class="col-sm-9">dds </dd>
+                    
+                    <dt class="col-sm-3">Timestamp:</dt>
+                    <dd class="col-sm-9"> UTC+0</dd>
+                    
+                    <dt class="col-sm-3">Fees:</dt>
+                    <dd class="col-sm-9"> er</dd>
+
+                    <dt class="col-sm-3">Size:</dt>
+                    <dd class="col-sm-9"> bytes</dd>
+
+                    <dt class="col-sm-3">Transaction volume:</dt>
+                    <dd class="col-sm-9"> re</dd> 
+                </dl>
+            </div>
+        </div>          
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <p class="h5 card-header bg-primary text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-arrow-right-circle-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-11.5.5a.5.5 0 0 1 0-1h5.793L8.146 5.354a.5.5 0 1 1 .708-.708l3 3a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708-.708L10.293 8.5H4.5z"/>
+                </svg>
+                &nbsp;Inputs
+            </p>
+            <div class="card-body bg-light">
+
+            </div>
+        </div>          
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <p class="h5 card-header bg-primary text-white">
+                <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-arrow-left-circle-fill" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-4.5.5a.5.5 0 0 0 0-1H5.707l2.147-2.146a.5.5 0 1 0-.708-.708l-3 3a.5.5 0 0 0 0 .708l3 3a.5.5 0 0 0 .708-.708L5.707 8.5H11.5z"/>
+                </svg>
+                &nbsp;Outputs
+            </p>
+            <div class="card-body bg-light">
+
+            </div>
+        </div>          
+    </div>
+</div>
+{% endblock %}

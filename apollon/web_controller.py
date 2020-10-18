@@ -102,10 +102,10 @@ def FlaskSites(FlaskO, ChainObj):
 
         # Es werden alle Address Daten abgerufen
         try: addr_details = ChainObj.getAddressDetails(resolved_address)
-        except: return jsonify({ 'error' : 'internal_error' })
+        except Exception as E: return jsonify({ 'error' : 'internal_error', 'error_code' : str(E) })
 
         # Die Daten werden abgezeigt
-        return jsonify({ 'amount' : addr_details['amount'], 'total_transactions' : addr_details['total_transactions'] })
+        return addr_details.toJSON()
     
     # Get Unspent Address UTXO's
     @FlaskO.route('/unspent_utxos/<address>')
@@ -139,6 +139,8 @@ def FlaskSites(FlaskO, ChainObj):
 
         # Es wird geprüft, ob 
         return jsonify(trans)
+
+
 
 class WebController():
     def __init__(self, ChainObject):

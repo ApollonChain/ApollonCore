@@ -55,4 +55,4 @@ def capg(ItemsPerPage, TotalItems):
     _a = TotalItems/ItemsPerPage
     if _a == 0: return 1
     if foiwp(_a) == True: return int(_a)
-    else: return int(_a) + 1
+    else: return int(_a) + 1 

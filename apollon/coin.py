@@ -1,5 +1,6 @@
 from hashlib import sha3_512, sha256, sha3_256
 
+## Apollon Coin Object ##
 class Coin(object):
     def __init__(self, Name, Symbol, SmallestUnitName,
                         SmallestUnitSymbol, DecimalPlaces, NetworkCHSum,
@@ -36,6 +37,7 @@ class Coin(object):
         self.burnable = Burnable
         self.txn_fee_burning = TxnFeeBurning
         self.txn_fee_burning_perc = TxnFeeBurningPerc
+        self.complete_object = True
         self.__achain = None
 
     def __str__(self): return "{} / {}".format(self.name, self.symbol)
@@ -95,11 +97,13 @@ class Coin(object):
     def isMiningLabel(self): return bool(self.mine_reward != 0)
 
     # Gibt an, wieviele Coins bei Block X exestieren
-    def getCirculatingSupplyByBlock(self, PrimaryUnit=False):
-        current_block = self.__achain.getBlockHeight()
-        if self.reward_at_block != 0 and self.__achain is not None and self.halvening_at != 0:
+    def getCirculatingSupplyByBlock(self, PrimaryUnit=False, BlockHeight=None):
+        if self.__achain is None and BlockHeight is None: return self.calcSmallestToPUnit(0)
+        if BlockHeight is not None: current_block = BlockHeight
+        else: current_block = self.__achain.getBlockHeight()
+        if self.reward_at_block != 0 and (self.__achain is not None or BlockHeight is not None) and self.halvening_at != 0:
             tota = 0
-            for xo in range(1, current_block):
+            for xo in range(1, current_block +1):
                 if self.hasRewardForBlock(xo) == True: tota += self.miningReward(xo)
             if PrimaryUnit == True: return self.calcSmallestToPUnit(tota)
             else: return tota
@@ -150,7 +154,7 @@ class Coin(object):
         if AsBytes == True: return hlib.digest()
         else: from apollon.utils import encodeBase58; return encodeBase58(hlib.digest())
 
-    # Gibt an wieviele Coin-Gebühren vom Miner verbrannt werden müssen
+    # Gibt an wieviele Coin-Gebühren vom Miner verbrannt werden müssen TODO
     def calcMinerBurningAmountValue(self, TotalAmountValue):
         return 0
 
@@ -280,7 +284,34 @@ class Coin(object):
         # Das Coin Objekt wird zurückgegeben
         return nwo
 
-## Speichert die Werte eines Coins ab und macht diese berechenbar
+## Apollon Distributed Coin Asset ## TODO
+class DistributedCoinAsset(object):
+    def __init__(self, Name, Symbol, Decimals, Total, CanAfterCreate, Burnable, FeeLabel ,OwnerAddress=[], AdminAddress=[]): pass
+
+    # Gibt den Asset Namen aus
+    def getName(self): pass
+
+    # Gibt das Symbol Asset aus
+    def getSymbol(self): pass
+
+    # Gibt die Decimalstellen aus
+    def getDecimals(self): pass
+
+    # Gibt die Gesamtzahl aller Coins aus
+    def getTotal(self): pass
+
+    # Gibt die Admin Adressen aus
+    def getAdminAddresses(self): pass
+
+    # Gibt die Eigentümer Adressen aus
+    def getOwnerAddresses(self): pass
+
+    # Gibt an ob der Coin Burnable ist
+    def isBurnable(self): pass
+
+
+
+## Speichert die Werte eines Coins ab und macht diese berechenbar TODO OLD
 class CoinValueUnit(object):
     def __init__(self, CoinObj): self.coin_obj = CoinObj; self.total_value = 0
     def __str__(self): return "{} {}".format(self.total_value, self.coin_obj.getSymbol(True))
@@ -315,7 +346,7 @@ class CoinValueUnit(object):
             return "{} {}".format(r, self.coin_obj.getSymbol(False))
     def coin(self): return self.coin_obj
 
-# Prüft ob es sich um einen Zulässigen Coin handelt, der Coin muss der Chain bekannt sein
+# Prüft ob es sich um einen Zulässigen Coin handelt, der Coin muss der Chain bekannt sein TODO OLD
 def isValidateCoin(coinobj):
     # Es wird geprüft ob es sich um ein Coin Objekt handelt
     if isinstance(coinobj, Coin) == False and isinstance(coinobj, str) == False: return False # Es handelt sich nicht um ein Coin Objekt

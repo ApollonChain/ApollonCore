@@ -1,16 +1,36 @@
 {% extends 'style.html' %}
 {% block content %}
 <div class="card">
-    <h5 class="card-header bg-primary text-white">
+    <p class="h5 card-header bg-primary text-white">
         <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box" fill="currentColor">
             <path fill-rule="evenodd" d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/>
         </svg>
         Blocks
-    </h5>
+      </p>
+    <div class="card-body bg-light">
+      <div class="btn-group" role="group">
+        {% if HasPrevPage == True %}
+        <a href="{{ url_for('_blocks', page=1) }}" class="btn btn-secondary btn-sm">&laquo;</a>
+        <a href="{{ url_for('_blocks', page=PrevPage) }}" class="btn btn-secondary btn-sm">Previous</a>
+        {% else %}
+        <a class="btn btn-secondary btn-sm disabled">&laquo;</a>
+        <a class="btn btn-secondary btn-sm float-left disabled">Previous</a>
+        {% endif %}
+      </div>
+      <div class="btn-group float-right" role="group">
+        {% if HasNextPage == True %}
+        <a href="{{ url_for('_blocks', page=NextPage) }}" class="btn btn-primary btn-sm">Next</a>
+        <a href="{{ url_for('_blocks', page=TotalPages) }}" class="btn btn-primary btn-sm">&raquo;</a>
+        {% else %}
+        <a class="btn btn-primary btn-sm float-right disabled">Next</a>
+        <a class="btn btn-primary btn-sm disabled">&raquo;</a>
+        {% endif %}
+      </div>
+    </div>
     <div class="card-body bg-light">
         <div class="list-group">
             {% for i in last_blocks %}
-            <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+            <a href="{{ url_for('_block_page',bid=i.getBlockHeight()) }}" class="list-group-item list-group-item-action flex-column align-items-start">
               <div class="d-flex w-100 justify-content-between">
                 <h5 class="mb-1">
                   <svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box-seam" fill="currentColor">
@@ -26,24 +46,25 @@
             {% endfor %}
         </div>
     </div>
+    <div class="card-body bg-light">
+      <div class="btn-group" role="group">
+        {% if HasPrevPage == True %}
+        <a href="{{ url_for('_blocks', page=1) }}" class="btn btn-secondary btn-sm">&laquo;</a>
+        <a href="{{ url_for('_blocks', page=PrevPage) }}" class="btn btn-secondary btn-sm">Previous</a>
+        {% else %}
+        <a class="btn btn-secondary btn-sm disabled">&laquo;</a>
+        <a class="btn btn-secondary btn-sm float-left disabled">Previous</a>
+        {% endif %}
+      </div>
+      <div class="btn-group float-right" role="group">
+        {% if HasNextPage == True %}
+        <a href="{{ url_for('_blocks', page=NextPage) }}" class="btn btn-primary btn-sm">Next</a>
+        <a href="{{ url_for('_blocks', page=TotalPages) }}" class="btn btn-primary btn-sm">&raquo;</a>
+        {% else %}
+        <a class="btn btn-primary btn-sm float-right disabled">Next</a>
+        <a class="btn btn-primary btn-sm disabled">&raquo;</a>
+        {% endif %}
+      </div>
+    </div>
 </div>
-<nav class="d-flex justify-content-center" aria-label="Page navigation example" style="padding-top: 1em;">
-    <ul class="pagination">
-      <li class="page-item">
-        <a class="page-link" href="#" aria-label="Previous">
-          <span aria-hidden="true">&laquo;</span>
-          <span class="sr-only">Previous</span>
-        </a>
-      </li>
-      {% for i in total_pages %}
-      <li class="page-item"><a class="page-link" href="{{ url_for('_blocks', page=i) }}">{{ i }}</a></li>
-      {% endfor %}
-      <li class="page-item">
-        <a class="page-link" href="#" aria-label="Next">
-          <span aria-hidden="true">&raquo;</span>
-          <span class="sr-only">Next</span>
-        </a>
-      </li>
-    </ul>
-</nav>
 {% endblock %}

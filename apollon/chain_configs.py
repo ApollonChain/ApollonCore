@@ -1,5 +1,5 @@
 class ChainRootConfig(object):
-    
+    # Erstellt ein neues ChainRootConfig Object
     def __init__(self):
         self.Coins = list()
         self.ChainName = str()
@@ -29,8 +29,9 @@ class ChainRootConfig(object):
         else: return netw_hash_bytes.hex() 
 
     # Gibt den Seed der Blockchain aus
-    def getChainSeed(self):
-        return self.ChainSeed
+    def getChainSeed(self, AsBytes=False):
+        if AsBytes == True: return bytes.fromhex(self.ChainSeed)
+        else: return self.ChainSeed
     
     # Gibt die NetzwerkID aus
     def getChainNetworkID(self):

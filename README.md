@@ -18,6 +18,8 @@ Further planned features:
 1) Decentralized DNS system
 2) Decentralized Shop System
 3) Ethereum read and write support via ChainLink
+4) Ethereum Address support
+5) Bitcoin Address support
 
 # It is not recommended to use this version of the block chain in a productive system, important security checks will be done with the completion of version 0.9
 
